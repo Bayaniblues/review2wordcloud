@@ -1,9 +1,12 @@
+import os
 import json
 from collections import Counter
 from wordcloud import WordCloud, STOPWORDS, ImageColorGenerator
-
+import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
+
 
 pos_store = []
 
@@ -19,9 +22,29 @@ negative_noun_array = []
 negative_verb_array = []
 negative_adjective_array = []
 
+nested_arrays = [
+                 'positive_verb_array',
+                 'positive_adjective_array',
+                 'positive_noun_array',
+
+                 'neutral_verb_array',
+                 'neutral_adjective_array',
+                 'neutral_noun_array',
+
+                 'negative_verb_array',
+                 'negative_adjective_array',
+                 'negative_noun_array',
+]
+
+get_file = 'analyzed2.json'
+
+folder_name = get_file.replace(".json", "")
+
+print(folder_name)
+
 
 def writejson():
-    with open('analyzed2.json', encoding="utf-8") as file:
+    with open(get_file, encoding="utf-8") as file:
         analyzed_json = json.loads(file.read())
         sentiment_id = analyzed_json[0]["Sentiment"]
         parts_of_speech = analyzed_json[0]["POS"]
@@ -67,7 +90,7 @@ def writejson():
                     classify_parts_of_speech(negative_noun_array, negative_verb_array, negative_adjective_array)
 
 
-writejson()
+
 # print(positive_noun_array, positive_verb_array, positive_adjective_array)
 
 # print(positive_noun_array)
@@ -78,32 +101,83 @@ def word_count(list):
     return counts
 
 
-#print(word_count(positive_noun_array))
+def build_pos_world_cloud():
+    fig = plt.figure(figsize=(10, 10))
+    columns = 3
+    rows = 3
 
+    # xs = np.linspace(0, 2*np.pi, 60)
+    # ys = np.abs(np.sin(xs))
 
-def make_word_cloud(description_array):
-    unique_string=(" ").join(description_array)
+    ax = []
+    plt.title("Parts of Speech Sentiment of a Popular Alexa Skill", pad=30)
+    x = [1.5, 2, 2.5]
+    y = [1, 2, 3]
+    xlabels = ['Verbs', "Adjectives", "Nouns"]
+    ylabels = ['Negative', 'Neutral', 'Positive']
+    plt.plot(x, y, 'ro')
+    plt.xticks(x, xlabels)
+    plt.yticks(y, ylabels)
 
-    wordcloud = WordCloud(width=1000, height=1000).generate(unique_string)
+    for i in range(columns*rows):
+        x = np.arange(1)
+        print(i)
+        img = mpimg.imread(f"{folder_name}/" + nested_arrays[i] + ".png")
+        ax.append(fig.add_subplot(rows, columns, i+1))
+        ax[i].get_xaxis().set_visible(False)
+        ax[i].get_yaxis().set_visible(False)
+        # ax[-1].set_title(nested_arrays[i])
+        plt.imshow(img, aspect='auto')
 
-    plt.figure(figsize=(15, 8))
-    plt.imshow(wordcloud)
-    plt.axis("off")
     plt.show()
 
 
 def generate_wordclouds():
-    make_word_cloud(positive_verb_array)
-    make_word_cloud(positive_adjective_array)
-    make_word_cloud(positive_noun_array)
+    if os.path.isdir(f"{folder_name}"):
+        os.remove(f"{folder_name}")
+        print(f"{folder_name} folder removed")
+        os.mkdir(f'{folder_name}')
+        os.chmod(f'{folder_name}', 0o777)
+        print(f"{folder_name} folder added")
+    else:
+        os.mkdir(f'{folder_name}')
+        os.chmod(f'{folder_name}', 0o777)
+        print(f"{folder_name} folder added")
 
-    make_word_cloud(neutral_verb_array)
-    make_word_cloud(neutral_adjective_array)
-    make_word_cloud(neutral_noun_array)
+    def make_word_cloud(description_array, description_label):
+        unique_string = (" ").join(description_array)
 
-    make_word_cloud(negative_verb_array)
-    make_word_cloud(negative_adjective_array)
-    make_word_cloud(negative_noun_array)
+        wordcloud = WordCloud(width=1500, height=1500, min_font_size=20, background_color="white").generate(
+            unique_string)
+
+        plt.figure(figsize=(15, 15))
+        plt.imshow(wordcloud)
+        plt.axis("off")
+        # plt.show()
+
+        wordcloud.to_file(f'{folder_name}/{description_label}.png')
+        print(f'{description_label}.png added')
+
+    make_word_cloud(positive_verb_array, 'positive_verb_array')
+    make_word_cloud(positive_adjective_array, 'positive_adjective_array')
+    make_word_cloud(positive_noun_array, 'positive_noun_array')
+
+    make_word_cloud(neutral_verb_array, 'neutral_verb_array')
+    make_word_cloud(neutral_adjective_array, 'neutral_adjective_array')
+    make_word_cloud(neutral_noun_array, 'neutral_noun_array')
+
+    make_word_cloud(negative_verb_array, 'negative_verb_array')
+    make_word_cloud(negative_adjective_array, 'negative_adjective_array')
+    make_word_cloud(negative_noun_array, 'negative_noun_array')
+
+    build_pos_world_cloud()
 
 
+def legend():
+    fig = plt.figure()
+    ax1 = fig.add_axes(["pos", "neu", "neg"])
+    fig.legend(())
+
+
+writejson()
 generate_wordclouds()
